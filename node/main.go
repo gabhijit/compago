@@ -12,14 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 // compago : Node Agent
 
 package main
 
-
 import (
-
 	"os"
 	"os/signal"
 	"syscall"
@@ -31,12 +28,9 @@ func main() {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGTERM)
 
-
 	var opts struct {
 		ConfigFile string `short:"f" long:"config-file" description:"specify a config file"`
-
 	}
-
 	_, err := flags.Parse(&opts)
 	if err != nil {
 		os.Exit(-1)
