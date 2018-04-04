@@ -17,12 +17,81 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/vishvananda/netlink"
+	"github.com/vishvananda/netns"
+
 	"github.com/jessevdk/go-flags"
 )
+
+type NodeAgentInfo struct {
+	rtlistener *NetlinkRouteListener
+}
+
+func NewNodeAgentInfo() *NodeAgentInfo {
+
+	ns := netns.None()
+	rtlistener := NewNetlinkRouteListener(ns)
+
+	agent := &NodeAgentInfo{rtlistener: rtlistener}
+
+	return agent
+}
+
+func (agent *NodeAgentInfo) Run() {
+	agent.rtlistener.Run()
+}
+
+type NetlinkRouteListener struct {
+	ns   netns.NsHandle
+	ch   chan netlink.RouteUpdate
+	done chan struct{}
+}
+
+func NewNetlinkRouteListener(ns netns.NsHandle) *NetlinkRouteListener {
+
+	var newns netns.NsHandle
+
+	if ns == 0 {
+		newns = netns.None()
+	} else {
+		newns = ns
+	}
+
+	ch := make(chan netlink.RouteUpdate)
+	done := make(chan struct{})
+	n := &NetlinkRouteListener{ch: ch, done: done, ns: newns}
+
+	return n
+}
+
+func (nl *NetlinkRouteListener) Run() {
+
+	if nl == nil {
+		return
+	}
+
+	defer close(nl.done)
+	err := netlink.RouteSubscribeAt(nl.ns, nl.ch, nl.done)
+	if err != nil {
+		os.Exit(-1)
+	}
+
+	for {
+		select {
+		case update := <-nl.ch:
+			// FIXME: handle this route update
+			fmt.Println("%q", update)
+		default:
+			break
+		}
+	}
+
+}
 
 func main() {
 	sigCh := make(chan os.Signal, 1)
@@ -35,6 +104,10 @@ func main() {
 	if err != nil {
 		os.Exit(-1)
 	}
+
+	agent := NewNodeAgentInfo()
+
+	agent.Run()
 
 	os.Exit(0)
 }
