@@ -23,88 +23,7 @@ import (
 	"syscall"
 
 	"github.com/jessevdk/go-flags"
-	"github.com/osrg/gobgp/api"
-	"github.com/vishvananda/netlink"
-	"github.com/vishvananda/netns"
-	"google.golang.org/grpc"
 )
-
-const (
-	GOBGP_GRPC_SERVER = ":50051"
-)
-
-type NodeAgentInfo struct {
-	routeListener *NetlinkRouteListener
-	bgpClient     gobgpapi.GobgpApiClient
-}
-
-func NewNodeAgentInfo() *NodeAgentInfo {
-
-	//FIXME : We need to get this value from Config.
-	conn, err := grpc.Dial(GOBGP_GRPC_SERVER, grpc.WithInsecure())
-	if err != nil {
-		return nil
-	}
-	bgpcl := gobgpapi.NewGobgpApiClient(conn)
-
-	ns := netns.None()
-	r := NewNetlinkRouteListener(ns)
-
-	agent := &NodeAgentInfo{routeListener: r, bgpClient: bgpcl}
-
-	return agent
-}
-
-func (agent *NodeAgentInfo) Run() {
-	agent.routeListener.Run()
-}
-
-type NetlinkRouteListener struct {
-	ns   netns.NsHandle
-	ch   chan netlink.RouteUpdate
-	done chan struct{}
-}
-
-func NewNetlinkRouteListener(ns netns.NsHandle) *NetlinkRouteListener {
-
-	var newns netns.NsHandle
-
-	if ns == 0 {
-		newns = netns.None()
-	} else {
-		newns = ns
-	}
-
-	ch := make(chan netlink.RouteUpdate)
-	done := make(chan struct{})
-	n := &NetlinkRouteListener{ch: ch, done: done, ns: newns}
-
-	return n
-}
-
-func (nl *NetlinkRouteListener) Run() {
-
-	if nl == nil {
-		return
-	}
-
-	defer close(nl.done)
-	err := netlink.RouteSubscribeAt(nl.ns, nl.ch, nl.done)
-	if err != nil {
-		os.Exit(-1)
-	}
-
-	for {
-		select {
-		case update := <-nl.ch:
-			// FIXME: handle this route update
-			fmt.Println("%q", update)
-		default:
-			break
-		}
-	}
-
-}
 
 func main() {
 	sigCh := make(chan os.Signal, 1)
@@ -118,9 +37,10 @@ func main() {
 		os.Exit(-1)
 	}
 
-	agent := NewNodeAgentInfo()
+	agent := NewNodeAgentManager()
 
 	agent.Run()
 
+	fmt.Println("Exiting...")
 	os.Exit(0)
 }
