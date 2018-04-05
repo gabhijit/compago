@@ -22,28 +22,41 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/jessevdk/go-flags"
+	"github.com/osrg/gobgp/api"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
+	"google.golang.org/grpc"
+)
 
-	"github.com/jessevdk/go-flags"
+const (
+	GOBGP_GRPC_SERVER = ":50051"
 )
 
 type NodeAgentInfo struct {
-	rtlistener *NetlinkRouteListener
+	routeListener *NetlinkRouteListener
+	bgpClient     gobgpapi.GobgpApiClient
 }
 
 func NewNodeAgentInfo() *NodeAgentInfo {
 
-	ns := netns.None()
-	rtlistener := NewNetlinkRouteListener(ns)
+	//FIXME : We need to get this value from Config.
+	conn, err := grpc.Dial(GOBGP_GRPC_SERVER, grpc.WithInsecure())
+	if err != nil {
+		return nil
+	}
+	bgpcl := gobgpapi.NewGobgpApiClient(conn)
 
-	agent := &NodeAgentInfo{rtlistener: rtlistener}
+	ns := netns.None()
+	r := NewNetlinkRouteListener(ns)
+
+	agent := &NodeAgentInfo{routeListener: r, bgpClient: bgpcl}
 
 	return agent
 }
 
 func (agent *NodeAgentInfo) Run() {
-	agent.rtlistener.Run()
+	agent.routeListener.Run()
 }
 
 type NetlinkRouteListener struct {
