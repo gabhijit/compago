@@ -30,16 +30,16 @@ const (
 	MONITOR_FAMILY    = 0
 )
 
-type NodeAgentManager struct {
-	routeListener *NetlinkRouteListener
+type nodeAgentManager struct {
+	routeListener *netlinkRouteListener
 	bgpClient     gobgpapi.GobgpApiClient
 	ctx           context.Context
 }
 
-func NewNodeAgentManager() *NodeAgentManager {
+func newNodeAgentManager() *nodeAgentManager {
 
 	ns := netns.None()
-	r := NewNetlinkRouteListener(ns)
+	r := newNetlinkRouteListener(ns)
 
 	//FIXME : We need to get this value from Config.
 	conn, err := grpc.Dial(GOBGP_GRPC_SERVER, grpc.WithInsecure())
@@ -51,12 +51,12 @@ func NewNodeAgentManager() *NodeAgentManager {
 	//FIXME: is this correct or should I get a context.Context()
 	ctx := context.Background()
 
-	agent := &NodeAgentManager{routeListener: r, bgpClient: bgpcl, ctx: ctx}
+	agent := &nodeAgentManager{routeListener: r, bgpClient: bgpcl, ctx: ctx}
 
 	return agent
 }
 
-func (n *NodeAgentManager) Run() {
+func (n *nodeAgentManager) run() {
 
 	// open netlink Writer
 
@@ -73,13 +73,13 @@ func (n *NodeAgentManager) Run() {
 		return
 	}
 
-	go n.RIBMonitor(stream)
+	go n.ribMonitor(stream)
 
 	// run netlink listener
-	n.routeListener.Run()
+	n.routeListener.run()
 }
 
-func (n *NodeAgentManager) RIBMonitor(cl gobgpapi.GobgpApi_MonitorRibClient) {
+func (n *nodeAgentManager) ribMonitor(cl gobgpapi.GobgpApi_MonitorRibClient) {
 	for {
 		dst, err := cl.Recv()
 		if err == io.EOF {
@@ -89,7 +89,7 @@ func (n *NodeAgentManager) RIBMonitor(cl gobgpapi.GobgpApi_MonitorRibClient) {
 			return
 
 		} else {
-			fmt.Println("%q", dst)
+			fmt.Println("%+v", dst)
 		}
 	}
 }

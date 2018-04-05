@@ -37,9 +37,9 @@ func main() {
 		os.Exit(-1)
 	}
 
-	agent := NewNodeAgentManager()
+	agent := newNodeAgentManager()
 
-	agent.Run()
+	agent.run()
 
 	fmt.Println("Exiting...")
 	os.Exit(0)

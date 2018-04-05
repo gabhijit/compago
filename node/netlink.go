@@ -22,13 +22,13 @@ import (
 	"github.com/vishvananda/netns"
 )
 
-type NetlinkRouteListener struct {
+type netlinkRouteListener struct {
 	ns   netns.NsHandle
 	ch   chan netlink.RouteUpdate
 	done chan struct{}
 }
 
-func NewNetlinkRouteListener(ns netns.NsHandle) *NetlinkRouteListener {
+func newNetlinkRouteListener(ns netns.NsHandle) *netlinkRouteListener {
 
 	var newns netns.NsHandle
 
@@ -40,12 +40,12 @@ func NewNetlinkRouteListener(ns netns.NsHandle) *NetlinkRouteListener {
 
 	ch := make(chan netlink.RouteUpdate)
 	done := make(chan struct{})
-	n := &NetlinkRouteListener{ch: ch, done: done, ns: newns}
+	n := &netlinkRouteListener{ch: ch, done: done, ns: newns}
 
 	return n
 }
 
-func (nl *NetlinkRouteListener) Run() {
+func (nl *netlinkRouteListener) run() {
 
 	if nl == nil {
 		return
@@ -61,7 +61,7 @@ func (nl *NetlinkRouteListener) Run() {
 		select {
 		case update := <-nl.ch:
 			// FIXME: handle this route update
-			fmt.Println("%q", update)
+			fmt.Println("%v", update)
 		default:
 			break
 		}
